@@ -40,8 +40,17 @@ impl Display for Token {
 
 #[derive(Debug, Clone)]
 pub enum LexerError {
-	Unimplemented(char),
+	UnexpectedChar(char),
 	UnclosedString(Box<str>),
+}
+
+impl Display for LexerError {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		match self {
+			LexerError::UnexpectedChar(ch) => write!(f, "Unexpected character: '{ch}'"),
+			LexerError::UnclosedString(st) => write!(f, "Unclosed string literal: {st}"),
+		}
+	}
 }
 
 pub struct Lexer;
@@ -143,7 +152,7 @@ impl Lexer {
 					LiteralString(acc.into_boxed_str())
 				}
 				' ' | '\t' | '\n' => continue,
-				other => return Err(LexerError::Unimplemented(other)),
+				other => return Err(LexerError::UnexpectedChar(other)),
 			};
 			tokens.push(next_token);
 		}
