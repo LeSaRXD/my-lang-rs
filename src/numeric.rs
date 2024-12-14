@@ -3,16 +3,18 @@ use std::{
 	ops::{Add, Div, Mul, Neg, Rem, Sub},
 };
 
-#[derive(Debug, Clone)]
-pub enum Number {
+#[derive(Debug, Clone, PartialEq)]
+pub enum Numeric {
 	Int(i128),
 	Float(f64),
 }
 
-impl Add<Number> for Number {
+impl Eq for Numeric {}
+
+impl Add<Numeric> for Numeric {
 	type Output = Self;
-	fn add(self, rhs: Number) -> Self::Output {
-		use Number::*;
+	fn add(self, rhs: Numeric) -> Self::Output {
+		use Numeric::*;
 		match (self, rhs) {
 			(Int(i1), Int(i2)) => Int(i1 + i2),
 			(Int(i1), Float(f2)) => Float((i1 as f64) + f2),
@@ -22,10 +24,10 @@ impl Add<Number> for Number {
 	}
 }
 
-impl Sub<Number> for Number {
+impl Sub<Numeric> for Numeric {
 	type Output = Self;
-	fn sub(self, rhs: Number) -> Self::Output {
-		use Number::*;
+	fn sub(self, rhs: Numeric) -> Self::Output {
+		use Numeric::*;
 		match (self, rhs) {
 			(Int(i1), Int(i2)) => Int(i1 - i2),
 			(Int(i1), Float(f2)) => Float((i1 as f64) - f2),
@@ -35,10 +37,10 @@ impl Sub<Number> for Number {
 	}
 }
 
-impl Neg for Number {
+impl Neg for Numeric {
 	type Output = Self;
 	fn neg(self) -> Self::Output {
-		use Number::*;
+		use Numeric::*;
 		match self {
 			Int(i) => Int(-i),
 			Float(f) => Float(-f),
@@ -46,10 +48,10 @@ impl Neg for Number {
 	}
 }
 
-impl Mul<Number> for Number {
+impl Mul<Numeric> for Numeric {
 	type Output = Self;
-	fn mul(self, rhs: Number) -> Self::Output {
-		use Number::*;
+	fn mul(self, rhs: Numeric) -> Self::Output {
+		use Numeric::*;
 		match (self, rhs) {
 			(Int(i1), Int(i2)) => Int(i1 * i2),
 			(Int(i1), Float(f2)) => Float((i1 as f64) * f2),
@@ -59,10 +61,10 @@ impl Mul<Number> for Number {
 	}
 }
 
-impl Div<Number> for Number {
+impl Div<Numeric> for Numeric {
 	type Output = Self;
-	fn div(self, rhs: Number) -> Self::Output {
-		use Number::*;
+	fn div(self, rhs: Numeric) -> Self::Output {
+		use Numeric::*;
 		match (self, rhs) {
 			(Int(i1), Int(i2)) => Int(i1 / i2),
 			(Int(i1), Float(f2)) => Float((i1 as f64) / f2),
@@ -72,10 +74,10 @@ impl Div<Number> for Number {
 	}
 }
 
-impl Rem<Number> for Number {
-	type Output = Number;
-	fn rem(self, rhs: Number) -> Self::Output {
-		use Number::*;
+impl Rem<Numeric> for Numeric {
+	type Output = Numeric;
+	fn rem(self, rhs: Numeric) -> Self::Output {
+		use Numeric::*;
 		match (self, rhs) {
 			(Int(i1), Int(i2)) => Int(i1 % i2),
 			(Int(i1), Float(f2)) => Float((i1 as f64) % f2),
@@ -85,9 +87,9 @@ impl Rem<Number> for Number {
 	}
 }
 
-impl Display for Number {
+impl Display for Numeric {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		use Number::*;
+		use Numeric::*;
 
 		match self {
 			Int(i) => f.write_str(&i.to_string()),

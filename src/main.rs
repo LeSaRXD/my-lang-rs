@@ -1,10 +1,14 @@
 use std::io::{stdin, stdout, Write};
 
+use ast::expression::Expression;
 use parser::Parser;
+use runtime::Runtime;
 
 mod ast;
 mod lexer;
+mod numeric;
 mod parser;
+mod runtime;
 
 fn main() {
 	let mut input = String::new();
@@ -24,14 +28,17 @@ fn main() {
 
 		input.pop();
 
-		let ast = match parser.produce_ast(&input) {
-			Ok(ast) => ast,
-			Err(e) => panic!("Could not create AST: {e}"),
-		};
-		for expr in ast {
-			println!("{expr}");
-			println!("{expr:?}");
+		match parser.produce_ast(&input) {
+			Ok(ast) => {
+				let res = Runtime::evaluate(Expression::Program(ast));
+				match res {
+					Ok(ok) => println!("{ok}"),
+					Err(err) => eprintln!("Error: {err}"),
+				}
+			}
+			Err(err) => eprintln!("Error: {err}"),
 		}
+
 		input.clear();
 	}
 }

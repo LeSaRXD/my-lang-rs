@@ -1,11 +1,12 @@
 use std::fmt::{Debug, Display};
 
-use super::{binary_expr::BinaryExpression, number::Number, unary_expr::UnaryExpression};
+use super::{binary_expr::BinaryExpression, unary_expr::UnaryExpression};
+use crate::numeric::Numeric;
 
 #[derive(Debug, Clone)]
 pub enum Expression {
 	Program(Vec<Expression>),
-	LiteralNumber(Number),
+	LiteralNumber(Numeric),
 	LiteralString(Box<str>),
 	Identifier(Box<str>),
 	Unary(UnaryExpression),

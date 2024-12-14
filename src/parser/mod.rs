@@ -8,10 +8,10 @@ use crate::{
 	ast::{
 		binary_expr::{BinaryExpression, BinaryOp},
 		expression::Expression,
-		number::Number,
 		unary_expr::{UnaryExpression, UnaryOp},
 	},
 	lexer::{token::Token, Lexer},
+	numeric::Numeric,
 };
 
 pub struct Parser {
@@ -134,8 +134,10 @@ impl Parser {
 		let token = self.at().ok_or(ParserError::UnexpectedEOF)?;
 
 		let (next, advance_by) = match token {
-			LiteralNumber(num, true) => (Expression::LiteralNumber(Number::Float(num.parse()?)), 1),
-			LiteralNumber(num, false) => (Expression::LiteralNumber(Number::Int(num.parse()?)), 1),
+			LiteralNumber(num, true) => {
+				(Expression::LiteralNumber(Numeric::Float(num.parse()?)), 1)
+			}
+			LiteralNumber(num, false) => (Expression::LiteralNumber(Numeric::Int(num.parse()?)), 1),
 			LiteralString(st) => (Expression::LiteralString(st.to_owned()), 1),
 			Identifier(ident) => (Expression::Identifier(ident.to_owned()), 1),
 			OpenParen => {
@@ -157,24 +159,35 @@ impl Parser {
 	}
 
 	pub fn produce_ast(&mut self, src: &str) -> Result<Vec<Expression>, ParserError> {
-		self.tokens.extend(Lexer::tokenize(src)?);
+		let new_tokens = Lexer::tokenize(src).map_err(|err| {
+			self.clear();
+			err
+		})?;
+		self.tokens.extend(new_tokens);
 
 		let mut program = Vec::new();
 		loop {
 			program.push(self.parse_expression()?);
-			return match self.at() {
-				None => Ok(program),
+			match self.at() {
+				None => break,
 				Some(Token::Semicolon) => {
 					self.advance(1);
 					if self.eof() {
 						program.push(Expression::Unit);
-						Ok(program)
+						break;
 					} else {
 						continue;
 					}
 				}
-				Some(tk) => Err(ParserError::UnexpectedToken(tk.to_owned())),
+				Some(tk) => return Err(ParserError::UnexpectedToken(tk.to_owned())),
 			};
 		}
+		self.clear();
+		Ok(program)
+	}
+
+	fn clear(&mut self) {
+		self.tokens.clear();
+		self.idx = 0;
 	}
 }

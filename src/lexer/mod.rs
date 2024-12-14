@@ -81,8 +81,7 @@ impl Lexer {
 								'n' | '\n' => acc.push('\n'),
 								'r' => acc.push('\r'),
 								't' => acc.push('\t'),
-								'b' => acc.push('\x08'),
-								_ => (),
+								other => return Err(LexerError::UnsupportedEscape(other)),
 							}
 							escaped = false;
 							continue;
