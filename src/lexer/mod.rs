@@ -104,6 +104,7 @@ impl Lexer {
 					LiteralString(acc.into_boxed_str())
 				}
 				' ' | '\t' | '\n' => continue,
+				';' => Semicolon,
 				other => return Err(LexerError::UnexpectedChar(other)),
 			};
 			tokens.push(next_token);

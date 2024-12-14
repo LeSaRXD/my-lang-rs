@@ -16,6 +16,7 @@ pub enum Token {
 	Percent,
 	Equals,
 	Unit,
+	Semicolon,
 }
 
 impl Display for Token {
@@ -36,6 +37,7 @@ impl Display for Token {
 			Percent => f.write_str("%"),
 			Equals => f.write_str("=="),
 			Unit => f.write_str("_"),
+			Semicolon => f.write_str(";"),
 		}
 	}
 }

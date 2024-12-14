@@ -4,6 +4,7 @@ use super::{binary_expr::BinaryExpression, number::Number, unary_expr::UnaryExpr
 
 #[derive(Debug, Clone)]
 pub enum Expression {
+	Program(Vec<Expression>),
 	LiteralNumber(Number),
 	LiteralString(Box<str>),
 	Identifier(Box<str>),
@@ -17,6 +18,7 @@ impl Display for Expression {
 		use Expression::*;
 
 		match self {
+			Program(exprs) => exprs.iter().try_for_each(|e| writeln!(f, "{e}")),
 			LiteralNumber(num) => Display::fmt(num, f),
 			LiteralString(st) => Debug::fmt(st, f),
 			Identifier(ident) => f.write_str(ident),
@@ -26,5 +28,3 @@ impl Display for Expression {
 		}
 	}
 }
-
-pub type Program = Vec<Expression>;

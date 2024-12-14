@@ -7,7 +7,7 @@ use error::ParserError;
 use crate::{
 	ast::{
 		binary_expr::{BinaryExpression, BinaryOp},
-		expression::{Expression, Program},
+		expression::Expression,
 		number::Number,
 		unary_expr::{UnaryExpression, UnaryOp},
 	},
@@ -146,23 +146,35 @@ impl Parser {
 				}
 				(expr, 1)
 			}
-			CloseParen => return Err(ParserError::UnexpectedCloseParen),
 			Unit => (Expression::Unit, 1),
-			_ => todo!(),
+			Let => todo!(),
+			Assign => todo!(),
+			unexpected => return Err(ParserError::UnexpectedToken(unexpected.to_owned())),
 		};
 
 		self.advance(advance_by);
 		Ok(next)
 	}
 
-	pub fn produce_ast(&mut self, src: &str) -> Result<Program, ParserError> {
+	pub fn produce_ast(&mut self, src: &str) -> Result<Vec<Expression>, ParserError> {
 		self.tokens.extend(Lexer::tokenize(src)?);
 
 		let mut program = Vec::new();
-		while !self.eof() {
+		loop {
 			program.push(self.parse_expression()?);
+			return match self.at() {
+				None => Ok(program),
+				Some(Token::Semicolon) => {
+					self.advance(1);
+					if self.eof() {
+						program.push(Expression::Unit);
+						Ok(program)
+					} else {
+						continue;
+					}
+				}
+				Some(tk) => Err(ParserError::UnexpectedToken(tk.to_owned())),
+			};
 		}
-
-		Ok(program)
 	}
 }
