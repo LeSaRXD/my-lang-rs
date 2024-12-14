@@ -7,7 +7,7 @@ use std::{
 use crate::{
 	ast::{
 		binary_expr::{BinaryExpression, BinaryOp},
-		node::{Expression, Program},
+		expression::{Expression, Program},
 		number::Number,
 		unary_expr::{UnaryExpression, UnaryOp},
 	},
@@ -186,6 +186,7 @@ impl Parser {
 				(expr, 1)
 			}
 			CloseParen => return Err(ParserError::UnexpectedCloseParen),
+			Unit => (Expression::Unit, 1),
 			_ => todo!(),
 		};
 

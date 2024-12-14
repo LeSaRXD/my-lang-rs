@@ -7,7 +7,6 @@ pub enum Token {
 	Identifier(Box<str>),
 	Let,
 	Assign,
-	Equals,
 	OpenParen,
 	CloseParen,
 	Plus,
@@ -15,6 +14,8 @@ pub enum Token {
 	Star,
 	Slash,
 	Percent,
+	Equals,
+	Unit,
 }
 
 impl Display for Token {
@@ -26,7 +27,6 @@ impl Display for Token {
 			Identifier(ident) => f.write_str(ident),
 			Let => f.write_str("let"),
 			Assign => f.write_str("="),
-			Equals => f.write_str("=="),
 			OpenParen => f.write_str("("),
 			CloseParen => f.write_str(")"),
 			Plus => f.write_str("+"),
@@ -34,6 +34,8 @@ impl Display for Token {
 			Star => f.write_str("*"),
 			Slash => f.write_str("/"),
 			Percent => f.write_str("%"),
+			Equals => f.write_str("=="),
+			Unit => f.write_str("_"),
 		}
 	}
 }
@@ -57,6 +59,7 @@ pub struct Lexer;
 
 static KEYWORDS: phf::Map<&str, Token> = phf::phf_map! {
 	"let" => Token::Let,
+	"_" => Token::Unit,
 };
 
 impl Lexer {

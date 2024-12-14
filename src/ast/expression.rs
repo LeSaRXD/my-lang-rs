@@ -9,7 +9,9 @@ pub enum Expression {
 	Identifier(Box<str>),
 	Unary(UnaryExpression),
 	Binary(BinaryExpression),
+	Unit,
 }
+
 impl Display for Expression {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		use Expression::*;
@@ -20,6 +22,7 @@ impl Display for Expression {
 			Identifier(ident) => f.write_str(ident),
 			Unary(unary) => Display::fmt(unary, f),
 			Binary(binary) => Display::fmt(binary, f),
+			Unit => f.write_str("_"),
 		}
 	}
 }

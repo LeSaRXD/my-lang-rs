@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use super::node::Expression;
+use super::expression::Expression;
 
 #[derive(Debug, Clone, Copy)]
 pub enum BinaryOp {
