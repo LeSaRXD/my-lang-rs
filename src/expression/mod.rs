@@ -1,7 +1,15 @@
-use std::fmt::{Debug, Display};
+pub mod assignment;
+pub mod binary;
+pub mod declaration;
+pub mod unary;
 
-use super::{binary_expr::BinaryExpression, unary_expr::UnaryExpression};
+use assignment::AssignmentExpression;
+use binary::BinaryExpression;
+use declaration::DeclarationExpression;
+use unary::UnaryExpression;
+
 use crate::numeric::Numeric;
+use std::fmt::{Debug, Display};
 
 #[derive(Debug, Clone)]
 pub enum Expression {
@@ -12,6 +20,8 @@ pub enum Expression {
 	Unary(UnaryExpression),
 	Binary(BinaryExpression),
 	Unit,
+	Assignment(AssignmentExpression),
+	Declaration(DeclarationExpression),
 }
 
 impl Display for Expression {
@@ -26,6 +36,8 @@ impl Display for Expression {
 			Unary(unary) => Display::fmt(unary, f),
 			Binary(binary) => Display::fmt(binary, f),
 			Unit => f.write_str("_"),
+			Assignment(assignment) => Display::fmt(assignment, f),
+			Declaration(declaration) => Display::fmt(declaration, f),
 		}
 	}
 }

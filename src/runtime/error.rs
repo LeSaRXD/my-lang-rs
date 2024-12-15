@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::ast::{binary_expr::BinaryOp, unary_expr::UnaryOp};
+use crate::expression::{binary::BinaryOp, unary::UnaryOp};
 
 use super::inner_value::InnerRuntimeValue;
 
@@ -26,6 +26,7 @@ pub enum RuntimeError {
 	UnsupportedOperation(RuntimeOperation),
 	VariableNotDeclared(Box<str>),
 	VariableTypeDoesntMatch(Box<str>),
+	CannotMutateVariable(Box<str>),
 }
 
 impl Display for RuntimeError {
@@ -34,10 +35,11 @@ impl Display for RuntimeError {
 
 		match self {
 			UnsupportedOperation(op) => write!(f, "Unsupported operation: {op}"),
-			VariableNotDeclared(varname) => write!(f, "Variable '{varname}' is not declared"),
-			VariableTypeDoesntMatch(varname) => {
-				write!(f, "Variable '{varname}' is of a different type")
+			VariableNotDeclared(ident) => write!(f, "Variable '{ident}' is not declared"),
+			VariableTypeDoesntMatch(ident) => {
+				write!(f, "Variable '{ident}' is of a different type")
 			}
+			CannotMutateVariable(ident) => write!(f, "Cannot mutate immutable variable '{ident}'"),
 		}
 	}
 }

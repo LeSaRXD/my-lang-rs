@@ -17,12 +17,14 @@ pub trait Pos {
 #[derive(Debug, Clone, PartialEq)]
 pub struct RuntimeValue {
 	inner: Rc<RefCell<InnerRuntimeValue>>,
+	pub mutable: bool,
 }
 
 impl RuntimeValue {
 	fn new(inner: InnerRuntimeValue) -> Self {
 		Self {
 			inner: Rc::new(RefCell::new(inner)),
+			mutable: false,
 		}
 	}
 

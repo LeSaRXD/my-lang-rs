@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-	ast::{binary_expr::BinaryOp, unary_expr::UnaryOp},
+	expression::{binary::BinaryOp, unary::UnaryOp},
 	numeric::Numeric,
 	runtime::error::{RuntimeError, RuntimeOperation},
 };

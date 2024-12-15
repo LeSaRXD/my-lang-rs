@@ -4,7 +4,7 @@ use std::{
 	rc::Rc,
 };
 
-use crate::runtime::{error::RuntimeError, value::RuntimeValue, RuntimeResult};
+use crate::runtime::{error::RuntimeError::*, value::RuntimeValue, RuntimeResult};
 
 struct InnerEnv {
 	parent: Option<Env>,
@@ -55,28 +55,29 @@ impl Env {
 
 	pub fn assign(&self, ident: &str, value: RuntimeValue) -> RuntimeResult {
 		match self.inner_mut().variables.get_mut(ident) {
-			Some(old) => {
-				if old.same_type(&value) {
-					Ok(self.declare(ident, value))
-				} else {
-					Err(RuntimeError::VariableTypeDoesntMatch(Box::from(ident)))
+			Some(old) => match (old.mutable, old.same_type(&value)) {
+				(true, true) => {
+					*old = value;
+					Ok(old.to_owned())
 				}
-			}
+				(true, false) => Err(VariableTypeDoesntMatch(Box::from(ident))),
+				(false, _) => Err(CannotMutateVariable(Box::from(ident))),
+			},
 			None => match &self.inner_mut().parent {
 				Some(parent) => parent.assign(ident, value),
-				None => Err(RuntimeError::VariableNotDeclared(Box::from(ident))),
+				None => Err(VariableNotDeclared(Box::from(ident))),
 			},
 		}
 	}
 
-	pub fn evaluate(&self, ident: &str) -> Result<RuntimeValue, RuntimeError> {
+	pub fn evaluate(&self, ident: &str) -> RuntimeResult {
 		let inner = self.inner();
 
 		match inner.variables.get(ident) {
 			Some(value) => Ok(value.to_owned()),
 			None => match &inner.parent {
 				Some(p) => p.evaluate(ident),
-				None => Err(RuntimeError::VariableNotDeclared(Box::from(ident))),
+				None => Err(VariableNotDeclared(Box::from(ident))),
 			},
 		}
 	}

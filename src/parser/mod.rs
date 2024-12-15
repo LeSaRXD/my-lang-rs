@@ -2,24 +2,30 @@ pub mod error;
 
 use std::ops::Not;
 
-use error::ParserError;
+use error::ParserError::{self, *};
 
 use crate::{
-	ast::{
-		binary_expr::{BinaryExpression, BinaryOp},
-		expression::Expression,
-		unary_expr::{UnaryExpression, UnaryOp},
+	expression::{
+		assignment::AssignmentExpression,
+		binary::{BinaryExpression, BinaryOp},
+		declaration::DeclarationExpression,
+		unary::{UnaryExpression, UnaryOp},
+		Expression,
 	},
-	lexer::{token::Token, Lexer},
+	lexer::{
+		token::Token::{self, *},
+		Lexer,
+	},
 	numeric::Numeric,
 };
+
+type ParserResult = std::result::Result<Expression, ParserError>;
 
 pub struct Parser {
 	idx: usize,
 	tokens: Vec<Token>,
 }
 
-type ParserResult = std::result::Result<Expression, ParserError>;
 impl Parser {
 	pub fn new() -> Self {
 		Self {
@@ -31,11 +37,49 @@ impl Parser {
 	fn eof(&self) -> bool {
 		self.idx >= self.tokens.len()
 	}
-	fn at(&self) -> Option<&Token> {
-		self.tokens.get(self.idx)
+
+	fn at(&self, offset: usize) -> Option<&Token> {
+		self.tokens.get(self.idx + offset)
 	}
+
+	fn current(&self) -> Option<&Token> {
+		self.at(0)
+	}
+
 	fn advance(&mut self, n: usize) {
 		self.idx += n;
+	}
+
+	pub fn produce_ast(&mut self, src: &str) -> ParserResult {
+		let new_tokens = Lexer::tokenize(src).map_err(|err| {
+			self.clear();
+			err
+		})?;
+		self.tokens.extend(new_tokens);
+
+		let mut program = Vec::new();
+		let res = loop {
+			match self.parse_expression() {
+				Ok(expr) => program.push(expr),
+				Err(err) => break Err(err),
+			}
+			match self.current() {
+				None => break Ok(program),
+				Some(Semicolon) => {
+					self.advance(1);
+					if self.eof() {
+						program.push(Expression::Unit);
+						break Ok(program);
+					} else {
+						continue;
+					}
+				}
+				Some(tk) => break Err(UnexpectedToken(tk.to_owned())),
+			}
+		};
+
+		self.clear();
+		res.map(Expression::Program)
 	}
 
 	fn parse_expression(&mut self) -> ParserResult {
@@ -43,10 +87,8 @@ impl Parser {
 	}
 
 	fn parse_equality(&mut self) -> ParserResult {
-		use Token::*;
-
 		let mut left = self.parse_additive()?;
-		while let Some(Equals) = self.at() {
+		while let Some(Equals) = self.current() {
 			self.advance(1);
 			let right = self.parse_additive()?;
 			let expr = BinaryExpression {
@@ -60,10 +102,8 @@ impl Parser {
 	}
 
 	fn parse_additive(&mut self) -> ParserResult {
-		use Token::*;
-
 		let mut left = self.parse_multiplicative()?;
-		while let Some(operator) = self.at() {
+		while let Some(operator) = self.current() {
 			let operator = match operator {
 				Plus => BinaryOp::Add,
 				Minus => BinaryOp::Subtract,
@@ -82,10 +122,8 @@ impl Parser {
 	}
 
 	fn parse_multiplicative(&mut self) -> ParserResult {
-		use Token::*;
-
 		let mut left = self.parse_unary()?;
-		while let Some(operator) = self.at() {
+		while let Some(operator) = self.current() {
 			let operator = match operator {
 				Star => BinaryOp::Multiply,
 				Slash => BinaryOp::Divide,
@@ -105,85 +143,88 @@ impl Parser {
 	}
 
 	fn parse_unary(&mut self) -> ParserResult {
-		use Token::*;
-
 		let mut expr = None;
-		while let Some(operator) = self.at() {
+		while let Some(operator) = self.current() {
 			let operator = match operator {
 				Plus => UnaryOp::Plus,
 				Minus => UnaryOp::Minus,
 				_ => break,
 			};
 			self.advance(1);
-			let right = self.parse_unary()?;
+			let right = self.parse_assignment()?;
 			expr = Some(UnaryExpression {
 				operator,
 				right: Box::new(right),
 			});
 		}
+
 		if let Some(expr) = expr {
 			Ok(Expression::Unary(expr))
+		} else {
+			self.parse_assignment()
+		}
+	}
+
+	fn parse_assignment(&mut self) -> ParserResult {
+		match (self.current(), self.at(1)) {
+			(Some(Identifier(ident)), Some(Assign)) => {
+				let ident = Box::to_owned(ident);
+				self.advance(2);
+				let expr = self.parse_expression()?;
+				Ok(Expression::Assignment(AssignmentExpression {
+					ident,
+					value: Box::new(expr),
+				}))
+			}
+			_ => self.parse_declaration(),
+		}
+	}
+
+	fn parse_declaration(&mut self) -> ParserResult {
+		if let Some(Let) = self.current() {
+			self.advance(1);
+			match (self.current(), self.at(1)) {
+				(Some(Identifier(ident)), Some(Assign)) => {
+					let ident = Box::to_owned(ident);
+					self.advance(2);
+					let expr = self.parse_expression()?;
+					Ok(Expression::Declaration(DeclarationExpression {
+						ident,
+						value: Box::new(expr),
+					}))
+				}
+				(Some(Identifier(_)), Some(other)) => Err(UnexpectedToken(other.to_owned())),
+				(Some(Identifier(_)), None) => Err(UnexpectedEOF),
+				(Some(other), _) => Err(UnexpectedToken(other.to_owned())),
+				(None, _) => Err(UnexpectedEOF),
+			}
 		} else {
 			self.parse_primary()
 		}
 	}
 
 	fn parse_primary(&mut self) -> ParserResult {
-		use Token::*;
+		let token = self.current().ok_or(UnexpectedEOF)?;
 
-		let token = self.at().ok_or(ParserError::UnexpectedEOF)?;
-
-		let (next, advance_by) = match token {
-			LiteralNumber(num, true) => {
-				(Expression::LiteralNumber(Numeric::Float(num.parse()?)), 1)
-			}
-			LiteralNumber(num, false) => (Expression::LiteralNumber(Numeric::Int(num.parse()?)), 1),
-			LiteralString(st) => (Expression::LiteralString(st.to_owned()), 1),
-			Identifier(ident) => (Expression::Identifier(ident.to_owned()), 1),
+		let next = match token {
+			LiteralNumber(num, true) => Expression::LiteralNumber(Numeric::Float(num.parse()?)),
+			LiteralNumber(num, false) => Expression::LiteralNumber(Numeric::Int(num.parse()?)),
+			LiteralString(st) => Expression::LiteralString(st.to_owned()),
+			Identifier(ident) => Expression::Identifier(ident.to_owned()),
 			OpenParen => {
 				self.advance(1);
 				let expr = self.parse_expression()?;
-				if matches!(self.at(), Some(CloseParen)).not() {
-					return Err(ParserError::ExpectedCloseParen);
+				if matches!(self.current(), Some(CloseParen)).not() {
+					return Err(ExpectedCloseParen);
 				}
-				(expr, 1)
+				expr
 			}
-			Unit => (Expression::Unit, 1),
-			Let => todo!(),
-			Assign => todo!(),
-			unexpected => return Err(ParserError::UnexpectedToken(unexpected.to_owned())),
+			Unit => Expression::Unit,
+			unexpected => return Err(UnexpectedToken(unexpected.to_owned())),
 		};
 
-		self.advance(advance_by);
+		self.advance(1);
 		Ok(next)
-	}
-
-	pub fn produce_ast(&mut self, src: &str) -> Result<Vec<Expression>, ParserError> {
-		let new_tokens = Lexer::tokenize(src).map_err(|err| {
-			self.clear();
-			err
-		})?;
-		self.tokens.extend(new_tokens);
-
-		let mut program = Vec::new();
-		loop {
-			program.push(self.parse_expression()?);
-			match self.at() {
-				None => break,
-				Some(Token::Semicolon) => {
-					self.advance(1);
-					if self.eof() {
-						program.push(Expression::Unit);
-						break;
-					} else {
-						continue;
-					}
-				}
-				Some(tk) => return Err(ParserError::UnexpectedToken(tk.to_owned())),
-			};
-		}
-		self.clear();
-		Ok(program)
 	}
 
 	fn clear(&mut self) {

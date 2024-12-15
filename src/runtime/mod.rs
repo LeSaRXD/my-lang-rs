@@ -8,12 +8,14 @@ use error::{RuntimeError, RuntimeOperation};
 use value::{Pos, RuntimeValue};
 
 use crate::{
-	ast::{
-		binary_expr::{BinaryExpression, BinaryOp},
-		expression::Expression,
-		unary_expr::{UnaryExpression, UnaryOp},
-	},
 	environment::Env,
+	expression::{
+		assignment::AssignmentExpression,
+		binary::{BinaryExpression, BinaryOp},
+		declaration::DeclarationExpression,
+		unary::{UnaryExpression, UnaryOp},
+		Expression,
+	},
 	numeric::Numeric,
 };
 
@@ -39,6 +41,8 @@ impl Runtime {
 			Unary(unary) => self.evaluate_unary(unary),
 			Binary(binary) => self.evaluate_binary(binary),
 			Unit => Ok(RuntimeValue::unit()),
+			Assignment(assignment) => self.evaluate_assignment(assignment, &self.global_env),
+			Declaration(declaration) => self.evaluate_declaration(declaration, &self.global_env),
 		}
 	}
 
@@ -86,5 +90,15 @@ impl Runtime {
 				}
 			}
 		}
+	}
+
+	fn evaluate_assignment(&self, assignment: AssignmentExpression, env: &Env) -> RuntimeResult {
+		self.evaluate(*assignment.value)
+			.and_then(|value| env.assign(&assignment.ident, value))
+	}
+
+	fn evaluate_declaration(&self, declaration: DeclarationExpression, env: &Env) -> RuntimeResult {
+		self.evaluate(*declaration.value)
+			.map(|value| env.declare(&declaration.ident, value))
 	}
 }
