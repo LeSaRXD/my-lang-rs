@@ -1,58 +1,72 @@
 pub mod error;
+pub mod inner_value;
 pub mod value;
 
 use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
 
 use error::{RuntimeError, RuntimeOperation};
-use value::RuntimeValue;
+use value::{Pos, RuntimeValue};
 
-use crate::ast::{
-	binary_expr::{BinaryExpression, BinaryOp},
-	expression::Expression,
-	unary_expr::{UnaryExpression, UnaryOp},
+use crate::{
+	ast::{
+		binary_expr::{BinaryExpression, BinaryOp},
+		expression::Expression,
+		unary_expr::{UnaryExpression, UnaryOp},
+	},
+	environment::Env,
+	numeric::Numeric,
 };
 
 pub type RuntimeResult = Result<RuntimeValue, RuntimeError>;
 
-pub struct Runtime;
+pub struct Runtime {
+	global_env: Env,
+}
 
 impl Runtime {
-	pub fn evaluate(expr: Expression) -> RuntimeResult {
+	pub fn new(global_env: Env) -> Self {
+		Self { global_env }
+	}
+
+	pub fn evaluate(&self, expr: Expression) -> RuntimeResult {
+		use Expression::*;
+
 		match expr {
-			Expression::Program(program) => Self::evaluate_program(program),
-			Expression::LiteralNumber(number) => Ok(RuntimeValue::Number(number)),
-			Expression::LiteralString(string) => Ok(RuntimeValue::String(string.into_string())),
-			Expression::Identifier(_) => todo!(),
-			Expression::Unary(unary) => Self::evaluate_unary(unary),
-			Expression::Binary(binary) => Self::evaluate_binary(binary),
-			Expression::Unit => Ok(RuntimeValue::Unit),
+			Program(program) => self.evaluate_program(program),
+			LiteralNumber(number) => Ok(RuntimeValue::number(number)),
+			LiteralString(string) => Ok(RuntimeValue::string(string.into_string())),
+			Identifier(ident) => self.global_env.evaluate(&ident),
+			Unary(unary) => self.evaluate_unary(unary),
+			Binary(binary) => self.evaluate_binary(binary),
+			Unit => Ok(RuntimeValue::unit()),
 		}
 	}
 
-	fn evaluate_program(program: Vec<Expression>) -> RuntimeResult {
-		let mut last = RuntimeValue::Unit;
+	fn evaluate_program(&self, program: Vec<Expression>) -> RuntimeResult {
+		let mut last = RuntimeValue::unit();
 		for expr in program {
-			last = Self::evaluate(expr)?;
+			last = self.evaluate(expr)?;
 		}
 		Ok(last)
 	}
 
-	fn evaluate_unary(unary: UnaryExpression) -> RuntimeResult {
+	fn evaluate_unary(&self, unary: UnaryExpression) -> RuntimeResult {
 		use UnaryOp::*;
 
-		let right = Self::evaluate(*unary.right)?;
+		let right = self.evaluate(*unary.right)?;
+
 		match unary.operator {
 			Plus => right.pos(),
 			Minus => right.neg(),
 		}
 	}
 
-	fn evaluate_binary(binary: BinaryExpression) -> RuntimeResult {
+	fn evaluate_binary(&self, binary: BinaryExpression) -> RuntimeResult {
 		use BinaryOp::*;
 		use RuntimeError::*;
 
-		let left = Self::evaluate(*binary.left)?;
-		let right = Self::evaluate(*binary.right)?;
+		let left = self.evaluate(*binary.left)?;
+		let right = self.evaluate(*binary.right)?;
 
 		match binary.operator {
 			Add => left.add(right),
@@ -61,16 +75,13 @@ impl Runtime {
 			Divide => left.div(right),
 			Modulo => left.rem(right),
 			Equals => {
-				use std::mem::discriminant;
-				if discriminant(&left) != discriminant(&right) {
-					Err(UnsupportedOperation(RuntimeOperation::Binary(
-						left,
-						BinaryOp::Equals,
-						right,
-					)))
+				if left.same_type(&right) {
+					Ok(RuntimeValue::number(Numeric::Int(left.eq(&right) as i128)))
 				} else {
-					Ok(RuntimeValue::Number(crate::numeric::Numeric::Int(
-						left.eq(&right) as i128,
+					Err(UnsupportedOperation(RuntimeOperation::Binary(
+						left.inner().to_owned(),
+						BinaryOp::Equals,
+						right.inner().to_owned(),
 					)))
 				}
 			}

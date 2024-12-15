@@ -2,12 +2,12 @@ use std::fmt::Display;
 
 use crate::ast::{binary_expr::BinaryOp, unary_expr::UnaryOp};
 
-use super::value::RuntimeValue;
+use super::inner_value::InnerRuntimeValue;
 
 #[derive(Debug, Clone)]
 pub enum RuntimeOperation {
-	Unary(UnaryOp, RuntimeValue),
-	Binary(RuntimeValue, BinaryOp, RuntimeValue),
+	Unary(UnaryOp, InnerRuntimeValue),
+	Binary(InnerRuntimeValue, BinaryOp, InnerRuntimeValue),
 }
 
 impl Display for RuntimeOperation {
@@ -24,6 +24,8 @@ impl Display for RuntimeOperation {
 #[derive(Debug, Clone)]
 pub enum RuntimeError {
 	UnsupportedOperation(RuntimeOperation),
+	VariableNotDeclared(Box<str>),
+	VariableTypeDoesntMatch(Box<str>),
 }
 
 impl Display for RuntimeError {
@@ -32,6 +34,10 @@ impl Display for RuntimeError {
 
 		match self {
 			UnsupportedOperation(op) => write!(f, "Unsupported operation: {op}"),
+			VariableNotDeclared(varname) => write!(f, "Variable '{varname}' is not declared"),
+			VariableTypeDoesntMatch(varname) => {
+				write!(f, "Variable '{varname}' is of a different type")
+			}
 		}
 	}
 }
