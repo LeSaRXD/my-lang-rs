@@ -183,6 +183,14 @@ impl Parser {
 	fn parse_declaration(&mut self) -> ParserResult {
 		if let Some(Let) = self.current() {
 			self.advance(1);
+
+			let mutable = if let Some(Mutable) = self.current() {
+				self.advance(1);
+				true
+			} else {
+				false
+			};
+
 			match (self.current(), self.at(1)) {
 				(Some(Identifier(ident)), Some(Assign)) => {
 					let ident = Box::to_owned(ident);
@@ -191,6 +199,7 @@ impl Parser {
 					Ok(Expression::Declaration(DeclarationExpression {
 						ident,
 						value: Box::new(expr),
+						mutable,
 					}))
 				}
 				(Some(Identifier(_)), Some(other)) => Err(UnexpectedToken(other.to_owned())),

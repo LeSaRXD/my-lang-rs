@@ -98,7 +98,8 @@ impl Runtime {
 	}
 
 	fn evaluate_declaration(&self, declaration: DeclarationExpression, env: &Env) -> RuntimeResult {
-		self.evaluate(*declaration.value)
-			.map(|value| env.declare(&declaration.ident, value))
+		let mut value = self.evaluate(*declaration.value)?;
+		value.mutable = declaration.mutable;
+		Ok(env.declare(&declaration.ident, value))
 	}
 }

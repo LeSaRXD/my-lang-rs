@@ -104,6 +104,7 @@ impl Lexer {
 				}
 				' ' | '\t' | '\n' => continue,
 				';' => Semicolon,
+				'~' => Mutable,
 				other => return Err(LexerError::UnexpectedChar(other)),
 			};
 			tokens.push(next_token);

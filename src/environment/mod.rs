@@ -53,11 +53,12 @@ impl Env {
 		value
 	}
 
-	pub fn assign(&self, ident: &str, value: RuntimeValue) -> RuntimeResult {
+	pub fn assign(&self, ident: &str, mut value: RuntimeValue) -> RuntimeResult {
 		let mut inner = self.inner_mut();
 		if let Some(old) = inner.variables.get_mut(ident) {
 			match (old.mutable, old.same_type(&value)) {
 				(true, true) => {
+					value.mutable = true;
 					*old = value;
 					Ok(old.to_owned())
 				}

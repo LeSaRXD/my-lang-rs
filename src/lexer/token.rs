@@ -17,6 +17,7 @@ pub enum Token {
 	Equals,
 	Unit,
 	Semicolon,
+	Mutable,
 }
 
 impl Display for Token {
@@ -38,6 +39,7 @@ impl Display for Token {
 			Equals => f.write_str("=="),
 			Unit => f.write_str("_"),
 			Semicolon => f.write_str(";"),
+			Mutable => f.write_str("~"),
 		}
 	}
 }
