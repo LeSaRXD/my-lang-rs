@@ -54,19 +54,20 @@ impl Env {
 	}
 
 	pub fn assign(&self, ident: &str, value: RuntimeValue) -> RuntimeResult {
-		match self.inner_mut().variables.get_mut(ident) {
-			Some(old) => match (old.mutable, old.same_type(&value)) {
+		let mut inner = self.inner_mut();
+		if let Some(old) = inner.variables.get_mut(ident) {
+			match (old.mutable, old.same_type(&value)) {
 				(true, true) => {
 					*old = value;
 					Ok(old.to_owned())
 				}
 				(true, false) => Err(VariableTypeDoesntMatch(Box::from(ident))),
 				(false, _) => Err(CannotMutateVariable(Box::from(ident))),
-			},
-			None => match &self.inner_mut().parent {
-				Some(parent) => parent.assign(ident, value),
-				None => Err(VariableNotDeclared(Box::from(ident))),
-			},
+			}
+		} else if let Some(parent) = &inner.parent {
+			parent.assign(ident, value)
+		} else {
+			Err(VariableNotDeclared(Box::from(ident)))
 		}
 	}
 
