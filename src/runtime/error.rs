@@ -2,12 +2,12 @@ use std::fmt::Display;
 
 use crate::expression::{binary::BinaryOp, unary::UnaryOp};
 
-use super::inner_value::InnerRuntimeValue;
+use super::value::RuntimeValue;
 
 #[derive(Debug, Clone)]
 pub enum RuntimeOperation {
-	Unary(UnaryOp, InnerRuntimeValue),
-	Binary(InnerRuntimeValue, BinaryOp, InnerRuntimeValue),
+	Unary(UnaryOp, RuntimeValue),
+	Binary(RuntimeValue, BinaryOp, RuntimeValue),
 }
 
 impl Display for RuntimeOperation {

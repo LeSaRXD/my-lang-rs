@@ -7,13 +7,13 @@ use std::{
 
 use crate::{
 	helpers::hashmap_to_string,
-	runtime::{error::RuntimeError::*, value::RuntimeValue, RuntimeResult},
+	runtime::{error::RuntimeError::*, variable::RuntimeVariable, RuntimeResult},
 };
 
 #[derive(Debug)]
 struct InnerEnv {
 	parent: Option<Env>,
-	variables: HashMap<Box<str>, RuntimeValue>,
+	variables: HashMap<Box<str>, RuntimeVariable>,
 }
 
 #[derive(Debug, Clone)]
@@ -64,14 +64,14 @@ impl Env {
 		Self::new_with_parent(Some(parent))
 	}
 
-	pub fn declare(&self, ident: &str, value: RuntimeValue) -> RuntimeValue {
+	pub fn declare(&self, ident: &str, value: RuntimeVariable) -> RuntimeVariable {
 		self.inner_mut()
 			.variables
 			.insert(Box::from(ident), value.clone());
 		value
 	}
 
-	pub fn assign(&self, ident: &str, mut value: RuntimeValue) -> RuntimeResult {
+	pub fn assign(&self, ident: &str, mut value: RuntimeVariable) -> RuntimeResult {
 		let mut inner = self.inner_mut();
 		if let Some(old) = inner.variables.get_mut(ident) {
 			match (old.mutable, old.same_type(&value)) {

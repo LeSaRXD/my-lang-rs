@@ -1,6 +1,6 @@
 pub mod error;
-pub mod inner_value;
 pub mod value;
+pub mod variable;
 
 use std::{
 	fmt::Display,
@@ -8,7 +8,7 @@ use std::{
 };
 
 use error::{RuntimeError, RuntimeOperation};
-use value::{Pos, RuntimeValue};
+use variable::{Pos, RuntimeVariable};
 
 use crate::{
 	environment::Env,
@@ -22,7 +22,7 @@ use crate::{
 	numeric::Numeric,
 };
 
-pub type RuntimeResult = Result<RuntimeValue, RuntimeError>;
+pub type RuntimeResult = Result<RuntimeVariable, RuntimeError>;
 
 #[derive(Debug)]
 pub struct Runtime {
@@ -51,19 +51,19 @@ impl Runtime {
 
 		match expr {
 			Program(program) => self.evaluate_program(program),
-			LiteralNumber(number) => Ok(RuntimeValue::number(number)),
-			LiteralString(string) => Ok(RuntimeValue::string(string.into_string())),
+			LiteralNumber(number) => Ok(RuntimeVariable::number(number)),
+			LiteralString(string) => Ok(RuntimeVariable::string(string.into_string())),
 			Identifier(ident) => self.global_env.evaluate(&ident),
 			Unary(unary) => self.evaluate_unary(unary),
 			Binary(binary) => self.evaluate_binary(binary),
-			Unit => Ok(RuntimeValue::unit()),
+			Unit => Ok(RuntimeVariable::unit()),
 			Assignment(assignment) => self.evaluate_assignment(assignment, &self.global_env),
 			Declaration(declaration) => self.evaluate_declaration(declaration, &self.global_env),
 		}
 	}
 
 	fn evaluate_program(&self, program: Vec<Expression>) -> RuntimeResult {
-		let mut last = RuntimeValue::unit();
+		let mut last = RuntimeVariable::unit();
 		for expr in program {
 			last = self.evaluate(expr)?;
 		}
@@ -96,7 +96,9 @@ impl Runtime {
 			Modulo => left.rem(right),
 			Equals => {
 				if left.same_type(&right) {
-					Ok(RuntimeValue::number(Numeric::Int(left.eq(&right) as i128)))
+					Ok(RuntimeVariable::number(Numeric::Int(
+						left.eq(&right) as i128
+					)))
 				} else {
 					Err(UnsupportedOperation(RuntimeOperation::Binary(
 						left.inner().to_owned(),
