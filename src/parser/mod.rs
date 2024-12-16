@@ -1,6 +1,6 @@
 pub mod error;
 
-use std::ops::Not;
+use std::{fmt::Display, ops::Not};
 
 use error::ParserError::{self, *};
 
@@ -12,6 +12,7 @@ use crate::{
 		unary::{UnaryExpression, UnaryOp},
 		Expression,
 	},
+	helpers::iter_to_string,
 	lexer::{
 		token::Token::{self, *},
 		Lexer,
@@ -21,9 +22,24 @@ use crate::{
 
 type ParserResult = std::result::Result<Expression, ParserError>;
 
+#[derive(Debug)]
 pub struct Parser {
 	idx: usize,
 	tokens: Vec<Token>,
+}
+
+impl Display for Parser {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(
+			f,
+			r#"Display {{
+idx: {},
+tokens: {}
+}}"#,
+			self.idx,
+			iter_to_string(&self.tokens)
+		)
+	}
 }
 
 impl Parser {
@@ -50,9 +66,9 @@ impl Parser {
 		self.idx += n;
 	}
 
-	pub fn produce_ast(&mut self, src: &str) -> ParserResult {
+	pub fn produce_ast(&mut self, src: &str, keep_tokens: bool) -> ParserResult {
 		let new_tokens = Lexer::tokenize(src).map_err(|err| {
-			self.clear();
+			self.clear(keep_tokens);
 			err
 		})?;
 		self.tokens.extend(new_tokens);
@@ -78,7 +94,7 @@ impl Parser {
 			}
 		};
 
-		self.clear();
+		self.clear(keep_tokens);
 		res.map(Expression::Program)
 	}
 
@@ -236,8 +252,12 @@ impl Parser {
 		Ok(next)
 	}
 
-	fn clear(&mut self) {
-		self.tokens.clear();
-		self.idx = 0;
+	fn clear(&mut self, keep_tokens: bool) {
+		if keep_tokens {
+			self.idx = self.tokens.len();
+		} else {
+			self.tokens.clear();
+			self.idx = 0;
+		}
 	}
 }

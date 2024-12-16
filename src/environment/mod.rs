@@ -1,24 +1,42 @@
 use std::{
 	cell::{Ref, RefCell, RefMut},
 	collections::HashMap,
+	fmt::{Debug, Display},
 	rc::Rc,
 };
 
-use crate::runtime::{error::RuntimeError::*, value::RuntimeValue, RuntimeResult};
+use crate::{
+	helpers::hashmap_to_string,
+	runtime::{error::RuntimeError::*, value::RuntimeValue, RuntimeResult},
+};
 
+#[derive(Debug)]
 struct InnerEnv {
 	parent: Option<Env>,
 	variables: HashMap<Box<str>, RuntimeValue>,
 }
+
+#[derive(Debug, Clone)]
 pub struct Env {
 	inner: Rc<RefCell<InnerEnv>>,
 }
 
-impl Clone for Env {
-	fn clone(&self) -> Self {
-		Self {
-			inner: Rc::clone(&self.inner),
-		}
+impl Display for Env {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		let parent_str = if let Some(p) = &self.inner().parent {
+			p.to_string()
+		} else {
+			"None".to_string()
+		};
+		let variables_str = hashmap_to_string(&self.inner().variables);
+		write!(
+			f,
+			r#"Env {{
+parent: {},
+variables: {}
+}}"#,
+			parent_str, variables_str,
+		)
 	}
 }
 

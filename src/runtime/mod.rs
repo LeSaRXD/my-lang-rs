@@ -2,7 +2,10 @@ pub mod error;
 pub mod inner_value;
 pub mod value;
 
-use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
+use std::{
+	fmt::Display,
+	ops::{Add, Div, Mul, Neg, Rem, Sub},
+};
 
 use error::{RuntimeError, RuntimeOperation};
 use value::{Pos, RuntimeValue};
@@ -21,8 +24,21 @@ use crate::{
 
 pub type RuntimeResult = Result<RuntimeValue, RuntimeError>;
 
+#[derive(Debug)]
 pub struct Runtime {
 	global_env: Env,
+}
+
+impl Display for Runtime {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(
+			f,
+			r#"Runtime {{
+global_env: {}
+}}"#,
+			self.global_env
+		)
+	}
 }
 
 impl Runtime {
